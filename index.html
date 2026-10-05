@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>n + n = ?</title>
+
+	<link rel="icon" href="tr.png">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@900&display=swap" rel="stylesheet">
+
+	<style>
+		body{
+			margin: 0;
+			overflow: hidden;
+			background: white;
+			font-family: "Playfair Display", Georgia, serif;
+			font-weight: 900;
+		}
+
+		#stage{
+			position: fixed;
+			inset: 0;
+			z-index: 2;
+			overflow: hidden;
+			pointer-events: none;
+		}
+
+		.ball{
+			position: absolute;
+			left: 0;
+			top: 0;
+			box-sizing: border-box;
+			cursor: pointer;
+			pointer-events: auto;
+		}
+
+		.mini{
+			box-sizing: border-box;
+			flex-shrink: 0;
+		}
+
+		#expr{
+			position: fixed;
+			inset: 0;
+			z-index: 1;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			gap: 3vw;
+			font-size: 10vw;
+			line-height: 0.9;
+			color: black;
+			pointer-events: none;
+		}
+
+		.col{
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+		}
+
+		.row{
+			display: flex;
+			justify-content: center;
+			gap: 4px;
+			margin-top: 1.5vw;
+			min-height: 22px;
+		}
+
+		#monitor{
+			position: fixed;
+			inset: 0;
+			z-index: 1;
+			display: none;
+			justify-content: center;
+			align-items: center;
+			margin: 0;
+			font-size: 16vw;
+			line-height: 0.9;
+			color: black;
+			pointer-events: none;
+			white-space: nowrap;
+		}
+
+		#panel{
+			position: fixed;
+			left: 50%;
+			bottom: 40px;
+			transform: translateX(-50%);
+			z-index: 10;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+
+		#panel input{
+			width: 64px;
+			height: 40px;
+			padding: 0;
+			text-align: center;
+			font-family: inherit;
+			font-size: 1.4rem;
+			font-weight: 900;
+			border: none;
+			border-radius: 20px;
+			background: #f1f1f1;
+			outline: none;
+			appearance: textfield;
+		}
+
+		#panel input:focus{
+			background: #e4e4e4;
+		}
+
+		#panel input::-webkit-inner-spin-button,
+		#panel input::-webkit-outer-spin-button{
+			-webkit-appearance: none;
+			margin: 0;
+		}
+
+		#panel button{
+			width: 44px;
+			height: 40px;
+			font-family: inherit;
+			font-size: 1.5rem;
+			font-weight: 900;
+			color: white;
+			background: hotpink;
+			border: none;
+			border-radius: 20px;
+			cursor: pointer;
+		}
+
+		#panel button:hover{
+			background: deeppink;
+		}
+	</style>
+</head>
+
+<body>
+
+	<div id="stage"></div>
+
+	<div id="expr">
+
+		<div class="col">
+			<div id="txtA">3</div>
+			<div class="row" id="rowA"></div>
+		</div>
+
+		<div id="txtOp">+</div>
+
+		<div class="col">
+			<div id="txtB">4</div>
+			<div class="row" id="rowB"></div>
+		</div>
+
+	</div>
+
+	<h1 id="monitor"></h1>
+
+	<div id="panel">
+
+		<input type="number" id="numA" min="0" max="20" value="3">
+
+		<button id="opBut">+</button>
+
+		<input type="number" id="numB" min="0" max="20" value="4">
+
+		<button id="eqBut">=</button>
+
+	</div>
+
+
+	<script>
+
+	alert("20까지만 작성 가능!");
+
+
+	let ops = ["+", "−", "×"];
+	let k = 0;
+	let op = "+";
+
+	let colors = ["magenta", "#00FF80", "cyan", "#5500FF"];
+	let kinds = ["circle", "circle", "round", "roundring", "tri", "triring"];
+
+	let balls = [];
+	let runId = 0;
+
+
+	function val(box){
+
+		let n = Number(box.value);
+
+		if(n < 0){
+			n = 0;
+		}
+
+		if(n > 20){
+			n = 20;
+		}
+
+		return Math.floor(n);
+	}
+
+
+	function mini(n, color, kind, row){
+
+		let size = Math.floor(innerWidth * 0.25 / Math.max(n, 1)) - 4;
+
+		if(size < 5){
+			size = 5;
+		}
+
+		if(size > 20){
+			size = 20;
+		}
+
+
+		for(let j = 0; j < n; j++){
+
+			let s = document.createElement("div");
+
+			s.className = "mini";
+
+			s.style.width = size + "px";
+			s.style.height = size + "px";
+
+
+			if(kind == "ring"){
+
+				s.style.border = "2px solid " + color;
+
+			}else{
+
+				s.style.background = color;
+				s.style.borderRadius = "50%";
+
+			}
+
+
+			row.appendChild(s);
+
+		}
+
+	}
+
+
+	function before(){
+
+		runId++;
+
+		balls = [];
+
+		stage.innerHTML = "";
+
+		rowA.innerHTML = "";
+		rowB.innerHTML = "";
+
+
+		mini(val(numA), "magenta", "circle", rowA);
+
+		mini(val(numB), "cyan", "ring", rowB);
+
+
+		txtA.innerHTML = val(numA);
+		txtB.innerHTML = val(numB);
+
+		txtOp.innerHTML = op;
+
+
+		expr.style.display = "flex";
+
+		monitor.style.display = "none";
+
+	}
+
+
+	function ball(color, kind, size){
+
+		let o = {};
+
+
+		o.el = document.createElement("div");
+
+		o.el.className = "ball";
+
+		o.el.style.width = size + "px";
+		o.el.style.height = size + "px";
+
+
+		let bw = Math.max(2, size * 0.06) + "px solid " + color;
+
+
+		let svg =
+			'<svg viewBox="0 0 100 100" width="100%" height="100%" style="display:block">';
+
+
+		if(kind == "ring"){
+
+			o.el.style.border = bw;
+
+		}else if(kind == "circlering"){
+
+			o.el.style.border = bw;
+			o.el.style.borderRadius = "50%";
+
+		}else if(kind == "roundring"){
+
+			o.el.style.border = bw;
+			o.el.style.borderRadius = "20%";
+
+		}else if(kind == "tri"){
+
+			o.el.innerHTML =
+				svg +
+				'<polygon points="50,8 95,90 5,90" fill="' +
+				color +
+				'" stroke="' +
+				color +
+				'" stroke-width="6" stroke-linejoin="round"/>' +
+				'</svg>';
+
+		}else if(kind == "triring"){
+
+			o.el.innerHTML =
+				svg +
+				'<polygon points="50,14 90,86 10,86" fill="none" stroke="' +
+				color +
+				'" stroke-width="5" stroke-linejoin="round"/>' +
+				'</svg>';
+
+		}else{
+
+			o.el.style.background = color;
+
+			if(kind == "circle"){
+				o.el.style.borderRadius = "50%";
+			}else{
+				o.el.style.borderRadius = "20%";
+			}
+
+		}
+
+
+		o.size = size;
+
+		o.x = Math.random() * (innerWidth - size);
+
+		o.y = -size - Math.random() * innerHeight * 0.9;
+
+		o.vx = (Math.random() - 0.5) * 3;
+
+		o.vy = Math.random() * 2;
+
+		o.r = Math.random() * 360;
+
+		o.vr = (Math.random() - 0.5) * 6;
+
+		o.free = false;
+
+		o.fa = 2 + Math.random() * 2.5;
+
+
+		o.el.style.transform =
+			"translate(" +
+			o.x +
+			"px," +
+			o.y +
+			"px) rotate(" +
+			o.r +
+			"deg)";
+
+
+		o.el.onclick = function(){
+
+			o.vx = (Math.random() - 0.5) * 10;
+
+			o.vy = (Math.random() - 0.5) * 10;
+
+			o.vr = (Math.random() - 0.5) * 12;
+
+		};
+
+
+		stage.appendChild(o.el);
+
+		balls.push(o);
+
+	}
+
+
+	function fall(){
+
+		runId++;
+
+		let my = runId;
+
+		let t0 = performance.now();
+
+
+		function frame(){
+
+			if(my != runId){
+				return;
+			}
+
+
+			let t = (performance.now() - t0) / 1000;
+
+			let W = innerWidth;
+
+			let H = panel.getBoundingClientRect().top - 8;
+
+
+			for(let j = 0; j < balls.length; j++){
+
+				let o = balls[j];
+
+
+				if(o.free == false && t > o.fa){
+
+					o.free = true;
+
+					o.vx = (Math.random() - 0.5) * 5;
+
+					o.vy = -(2 + Math.random() * 3);
+
+					o.vr = (Math.random() - 0.5) * 4;
+
+				}
+
+
+				let g = 0;
+
+
+				if(o.free == false){
+					g = 0.5;
+				}
+
+
+				o.vy += g;
+
+				o.x += o.vx;
+
+				o.y += o.vy;
+
+				o.r += o.vr;
+
+
+				if(o.free){
+
+					let sp =
+						Math.sqrt(
+							o.vx * o.vx +
+							o.vy * o.vy
+						);
+
+
+					if(sp > 1.4){
+
+						o.vx *= 0.992;
+						o.vy *= 0.992;
+
+					}else if(sp < 0.7){
+
+						if(sp == 0){
+
+							o.vx = 0.7;
+
+						}else{
+
+							o.vx *= 0.7 / sp;
+
+							o.vy *= 0.7 / sp;
+
+						}
+
+					}
+
+				}
+
+
+				if(o.x < 0){
+
+					o.x = 0;
+
+					o.vx = Math.abs(o.vx);
+
+				}
+
+
+				if(o.x > W - o.size){
+
+					o.x = W - o.size;
+
+					o.vx = -Math.abs(o.vx);
+
+				}
+
+
+				if(o.y > H - o.size){
+
+					o.y = H - o.size;
+
+					o.vy = -Math.abs(o.vy) * (o.free ? 1 : 0.78);
+
+
+					if(o.free == false){
+
+						o.vx *= 0.9;
+
+						o.vr *= 0.8;
+
+
+						if(Math.abs(o.vy) < 1){
+
+							o.vy = 0;
+
+						}
+
+					}
+
+				}
+
+
+				if(o.free && o.y < 0){
+
+					o.y = 0;
+
+					o.vy = Math.abs(o.vy);
+
+				}
+
+
+				o.el.style.transform =
+					"translate(" +
+					o.x +
+					"px," +
+					o.y +
+					"px) rotate(" +
+					o.r +
+					"deg)";
+
+			}
+
+
+			requestAnimationFrame(frame);
+
+		}
+
+
+		requestAnimationFrame(frame);
+
+	}
+
+
+	eqBut.onclick = function(){
+
+		before();
+
+
+		let A = val(numA);
+
+		let B = val(numB);
+
+		let n;
+
+		let result;
+
+
+		if(op == "+"){
+
+			n = A + B;
+
+			result = A + B;
+
+		}else if(op == "−"){
+
+			n = Math.abs(A - B);
+
+			result = A - B;
+
+		}else{
+
+			n = A * B;
+
+			result = A * B;
+
+		}
+
+
+		let size = 0;
+
+
+		if(n > 0){
+
+			size =
+				Math.max(
+					16,
+					Math.min(
+						90,
+						Math.floor(
+							Math.sqrt(
+								innerWidth *
+								innerHeight *
+								0.2 /
+								n
+							)
+						)
+					)
+				);
+
+		}
+
+
+		if(op == "+"){
+
+			for(let j = 0; j < A; j++){
+
+				ball(
+					"magenta",
+					"circle",
+					size
+				);
+
+			}
+
+
+			for(let j = 0; j < B; j++){
+
+				ball(
+					"cyan",
+					"ring",
+					size
+				);
+
+			}
+
+		}else if(op == "−"){
+
+			for(let j = 0; j < n; j++){
+
+				if(A > B){
+
+					ball(
+						"magenta",
+						"circle",
+						size
+					);
+
+				}else{
+
+					ball(
+						"cyan",
+						"ring",
+						size
+					);
+
+				}
+
+			}
+
+		}else{
+
+			for(let j = 0; j < n; j++){
+
+				ball(
+					colors[Math.floor(j / B) % 4],
+					kinds[j % 6],
+					size
+				);
+
+			}
+
+		}
+
+
+		monitor.innerHTML = result;
+
+		expr.style.display = "none";
+
+		monitor.style.display = "flex";
+
+		fall();
+
+	};
+
+
+	opBut.onclick = function(){
+
+		k++;
+
+		if(k >= 3){
+			k = 0;
+		}
+
+		op = ops[k];
+
+		opBut.innerHTML = op;
+
+		before();
+
+	};
+
+
+	numA.oninput = before;
+
+	numB.oninput = before;
+
+
+	before();
+
+	</script>
+
+</body>
+
+</html>
